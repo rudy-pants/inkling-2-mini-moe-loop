@@ -34,6 +34,17 @@ out of scope for now; the trace format should still allow it later.
   warm up before measuring
 - Real decode cost of context (llama-bench tg64, -fa on): 32.9 tok/s at depth 0, 32.0 at 225, 31.0 at 1024,
   30.0 at 4096 (−9%)
+  - Attention passes: physical blocks 5, 11, 17, 23 are global, the rest use the 1024-token sliding window → 8 global
+    + 40 sliding-window passes per token. KV is F16, 4 KB per context position per pass
+  - On gfx1151 the relative-position bias is built as a separate tensor (F32 gather → F16 mask) and then fed to
+    ordinary vector flash attention; the fused-bias path (unslothai#413) is available on HIP but did not fire;
+    #415 is NVIDIA-only (Sol review, 2026-11-24)
+  - Step 2 warmup is HIP graph capture (needs 2 identical calls, `ggml-cuda.cu` ~line 6003); step 1 is the graph
+    rebuild after the prefill→decode shape change
+- **Cache simulator (Phase 2)**: add KV reads (≈ 4 KB × visible positions per pass) to the access stream, not just
+  weights; they reach ~300 MB/token at depth 4096
+- **rocprofv3**: a quick run only produced HIP API timing; hardware counters (FETCH_SIZE, MALL) still need to be
+  shown to work on gfx1151 before Phase 3 relies on them
 
 ---
 
