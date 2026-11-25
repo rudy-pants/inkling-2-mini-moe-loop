@@ -29,12 +29,13 @@ struct Args {
     int n_ctx = 2048;
     int ngl = 99;
     bool info_only = false;
+    bool step_times = false;
     bool verbose = false;
 };
 
 void usage(const char * argv0) {
     std::fprintf(stderr,
-                 "usage: %s [-m model.gguf] [-p prompt] [-n n_predict] [-c n_ctx] [-ngl n] [--info-only] [-v]\n"
+                 "usage: %s [-m model.gguf] [-p prompt] [-n n_predict] [-c n_ctx] [-ngl n] [--info-only] [--step-times] [-v]\n"
                  "default model: %s\n",
                  argv0, MOE_DEFAULT_MODEL);
 }
@@ -53,6 +54,7 @@ Args parse(int argc, char ** argv) {
         else if (s == "-c") a.n_ctx = std::stoi(next());
         else if (s == "-ngl") a.ngl = std::stoi(next());
         else if (s == "--info-only") a.info_only = true;
+        else if (s == "--step-times") a.step_times = true;
         else if (s == "-v") a.verbose = true;
         else if (s == "-h" || s == "--help") { usage(argv[0]); std::exit(0); }
         else throw std::invalid_argument("unknown argument: " + s);
@@ -143,14 +145,17 @@ int run(const Args & a) {
     set_tokens(tokens.data(), n_prompt, 0);
     llama_pos pos = 0;
     int n_gen = 0;
-    int64_t t_first = 0;
+    // llama_process() only queues GPU work; sampling reads the logits and therefore waits for it.
+    // So time is taken after each sample: step i = the wall time from sample i-1 to sample i.
+    const int64_t t_start = ggml_time_us();
+    std::vector<int64_t> t_sampled;
     for (int n_tokens = n_prompt; n_gen < a.n_predict;) {
         if (const int rc = llama_process(ctx, LLAMA_PROCESS_TYPE_DECODE, batch); rc != 0) {
             throw std::runtime_error("llama_process failed: " + std::to_string(rc));
         }
         pos += n_tokens;
-        if (n_gen == 0) t_first = ggml_time_us();
         llama_token next = llama_sampler_sample(smpl, ctx, -1);
+        t_sampled.push_back(ggml_time_us());
         if (llama_vocab_is_eog(vocab, next)) break;
         std::printf("%s", piece(vocab, next).c_str());
         std::fflush(stdout);
@@ -158,10 +163,19 @@ int run(const Args & a) {
         set_tokens(&next, 1, pos);
         n_tokens = 1;
     }
-    const int64_t t1 = ggml_time_us();
     std::printf("\n---\n");
-    if (n_gen > 1) {
-        std::printf("generated %d tokens, decode %.1f tok/s\n", n_gen, (n_gen - 1) / (static_cast<double>(t1 - t_first) / 1e6));
+    if (!t_sampled.empty()) {
+        std::printf("prefill %d tokens: %.1f ms\n", n_prompt, static_cast<double>(t_sampled[0] - t_start) / 1e3);
+    }
+    if (t_sampled.size() > 1) {
+        const double decode_s = static_cast<double>(t_sampled.back() - t_sampled.front()) / 1e6;
+        const auto n_steps = static_cast<double>(t_sampled.size() - 1);
+        std::printf("generated %d tokens, decode %.1f tok/s\n", n_gen, n_steps / decode_s);
+    }
+    if (a.step_times && t_sampled.size() > 1) {
+        std::printf("decode step ms:");
+        for (size_t i = 1; i < t_sampled.size(); ++i) std::printf(" %.1f", static_cast<double>(t_sampled[i] - t_sampled[i - 1]) / 1e3);
+        std::printf("\n");
     }
 
     llama_batch_ext_free(batch);

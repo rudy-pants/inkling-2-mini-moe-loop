@@ -27,8 +27,13 @@ out of scope for now; the trace format should still allow it later.
 - `llama_model_n_layer()` returns 48 (graph slots); `llama_model_n_layer_weights()` returns 24 (physical blocks)
 - Upstream bug #32778 (garbage output for prompts over ~96 tokens) does not reproduce here: a 225-token prompt
   gives the same normal text in `moe-smoke` and `llama-completion`
-- Decode speed: 30.9 tok/s after a 5-token prompt, 20.9 tok/s after a 225-token prompt (worth understanding before
-  benchmarking in Phase 3)
+- **Timing pitfall**: `llama_process()` only queues GPU work; it is finished when the logits are read
+  (`llama_sampler_sample`). Take timestamps after sampling. An early `moe-smoke` timed from `llama_process()` and
+  wrongly showed 20.9 vs 30.9 tok/s for long vs short prompts; with correct timing both are ~32 tok/s
+- The first two decode steps after any prefill are slower (~44 ms, ~35 ms vs ~30.2 ms steady): exclude them or
+  warm up before measuring
+- Real decode cost of context (llama-bench tg64, -fa on): 32.9 tok/s at depth 0, 32.0 at 225, 31.0 at 1024,
+  30.0 at 4096 (−9%)
 
 ---
 
