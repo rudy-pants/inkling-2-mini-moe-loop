@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkling 2 Mini — expert routing report</title>
+<style>
+/* ---- palette (reference instance, validated light + dark) ---- */
+.viz-root {
+  color-scheme: light;
+  --page: #f9f9f9; --surface-1: #ffffff;
+  --text-primary: #191919; --text-secondary: #666666;
+  --grid: #e7e7e7; --axis: #c2c2c2; --border: rgba(11,11,11,0.10);
+  --series-1: #257de0; --series-2: #f47230; --series-3: #00b894; --series-4: #f2a600;
+  --deemph: #c2c2c2; --div-neg: #1b64be; --div-mid: #efefef; --div-pos: #ec4647;
+  --hover-wash: rgba(11,11,11,0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --page: #0b0b0b; --surface-1: #191919;
+    --text-primary: #efefef; --text-secondary: #9c9c9c;
+    --grid: #303030; --axis: #474747; --border: rgba(255,255,255,0.10);
+    --series-1: #338ced; --series-2: #e76624; --series-3: #00a888; --series-4: #d28e05;
+    --deemph: #474747; --div-neg: #338ced; --div-mid: #383838; --div-pos: #eb6263;
+    --hover-wash: rgba(255,255,255,0.06);
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --page: #0b0b0b; --surface-1: #191919;
+  --text-primary: #efefef; --text-secondary: #9c9c9c;
+  --grid: #303030; --axis: #474747; --border: rgba(255,255,255,0.10);
+  --series-1: #338ced; --series-2: #e76624; --series-3: #00a888; --series-4: #d28e05;
+  --deemph: #474747; --div-neg: #338ced; --div-mid: #383838; --div-pos: #eb6263;
+  --hover-wash: rgba(255,255,255,0.06);
+}
+html, body { margin: 0; }
+.viz-root {
+  background: var(--page); color: var(--text-primary); min-height: 100vh;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1200px; margin: 0 auto; padding: 24px 20px 64px; }
+header.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+h2 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+h3 { font-size: 15px; font-weight: 600; margin: 16px 0 4px; }
+.sub { color: var(--text-secondary); margin: 0; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 20px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 20px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+.tile .note { color: var(--text-secondary); font-size: 12px; }
+.lede { max-width: 820px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--text-secondary); font-size: 13px; margin: 8px 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key-line { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
+.key-rect { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.key-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+svg { display: block; overflow: visible; }
+svg text { fill: var(--text-secondary); font-size: 12px; font-family: inherit; }
+svg text.ink { fill: var(--text-primary); }
+.chart-wrap { overflow-x: auto; }
+details.tbl { margin-top: 10px; }
+details.tbl summary { color: var(--text-secondary); cursor: pointer; font-size: 13px; }
+table { border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--text-secondary); font-weight: 500; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.filters { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin: 12px 0 8px; }
+.filters label { display: flex; flex-direction: column; gap: 4px; color: var(--text-secondary); font-size: 13px; }
+select, button, input {
+  font: inherit; color: var(--text-primary); background: var(--surface-1);
+  border: 1px solid var(--axis); border-radius: 8px; padding: 6px 10px;
+}
+button { cursor: pointer; }
+button:hover { background: var(--hover-wash); }
+.tok { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--hover-wash); border-radius: 4px; padding: 0 4px; white-space: pre; }
+.profile { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .profile { grid-template-columns: 1fr; } }
+.callout { border-left: 3px solid var(--series-1); padding: 4px 0 4px 12px; margin: 12px 0; }
+.muted { color: var(--text-secondary); }
+.clickable { cursor: pointer; }
+.clickable:hover td { background: var(--hover-wash); }
+#tooltip {
+  position: fixed; pointer-events: none; z-index: 10; display: none;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); max-width: 320px;
+}
+#tooltip .tv { font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+#tooltip .tr { display: flex; align-items: center; gap: 8px; }
+#tooltip .tl { color: var(--text-secondary); }
+.focus-ring:focus { outline: 2px solid var(--series-1); outline-offset: 1px; }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root">
+<main>
+  <header class="top">
+    <div>
+      <h1>Inkling 2 Mini: expert routing report</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <button id="theme-toggle" type="button" aria-label="Toggle light or dark theme">Theme</button>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="card">
+    <h2>Can we tell what each expert is for?</h2>
+    <div class="lede" id="answer"></div>
+  </section>
+
+  <section class="card">
+    <h2>Where the bytes of one generated token go</h2>
+    <p class="sub">Weight and cache reads per decode token, from the trace and the GGUF tensor layout.</p>
+    <div id="bytes"></div>
+  </section>
+
+  <section class="card">
+    <h2>The loop reuses experts</h2>
+    <p class="sub">Experts shared by the same token at the same physical block in two loop passes (decode, of 8). Random routing would share 0.5.</p>
+    <div class="chart-wrap" id="loop"></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card" style="margin-top:20px">
+      <h2>Reuse across tokens</h2>
+      <p class="sub">Experts shared with the token <i>lag</i> steps earlier, same slot (decode).</p>
+      <div id="lag"></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h2>Distinct experts for a batch of tokens</h2>
+      <p class="sub">Expert slabs per slot needed by W consecutive decode tokens, vs. no sharing (W × 8).</p>
+      <div id="window"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Would a cache catch the reuse?</h2>
+    <p class="sub">Byte hit rate of a fully associative cache over 14k decode tokens. L2 is 2 MB, the Infinity Cache (MALL) 32 MB.</p>
+    <div class="chart-wrap" id="cache"></div>
+  </section>
+
+  <section class="card">
+    <h2>Expert popularity</h2>
+    <p class="sub">Share of each layer's routing decisions per expert (all prompts, all passes). A uniform router would give every cell 0.78%.</p>
+    <div class="filters"><label>Order<select id="pop-order"><option value="id">expert id</option><option value="rank">most used first (per layer)</option></select></label></div>
+    <div class="chart-wrap" id="pop"></div>
+  </section>
+
+  <section class="card">
+    <h2>Specialists by prompt category</h2>
+    <p class="sub">Layer-experts significantly enriched in a category (lift ≥ 1.5×, Benjamini-Hochberg q &lt; 0.05, sequence-level permutation test).</p>
+    <div id="spec-cats"></div>
+    <h3>How different is each category's routing?</h3>
+    <p class="sub">Jensen-Shannon divergence (bits) of a category's expert distribution from all prompts, per layer.</p>
+    <div class="chart-wrap" id="js"></div>
+  </section>
+
+  <section class="card" id="explorer-card">
+    <h2>Expert explorer</h2>
+    <p class="sub">Category lift for every expert of one layer. Red = used more than average for that category, blue = less, gray ≈ average (colour smoothed for rarely used experts; exact values in the tooltip). A dot marks a significant enrichment. Click a column for the expert's profile.</p>
+    <div class="filters">
+      <label>Layer<select id="ex-layer"></select></label>
+      <label>Sort experts by<select id="ex-sort"></select></label>
+      <label>Expert<input id="ex-expert" type="number" min="0" max="127" style="width:80px"></label>
+    </div>
+    <div class="chart-wrap" id="explorer"></div>
+    <div id="profile"></div>
+  </section>
+
+  <section class="card">
+    <h2>Token-type specialists</h2>
+    <p class="sub">The two strongest experts per token type (at least 50 expected selections). Tokens of that type are listed first; faded tokens are the expert's other favourites. Cyrillic, Arabic and Devanagari text each come from a single prompt, so treat those rows as anecdotes. Click a row to open its profile.</p>
+    <div id="spec-tokens"></div>
+  </section>
+
+  <section class="card">
+    <h2>Reordering experts in the file (Phase 3)</h2>
+    <div id="phase3"></div>
+  </section>
+
+  <section class="card">
+    <h2>Method and caveats</h2>
+    <div class="lede" id="method"></div>
+  </section>
+</main>
+<div id="tooltip" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+const DATA = /*__MOE_DATA__*/null;
+</script>
+<script>
+"use strict";
+(() => {
+const D = DATA;
+const root = document.getElementById("root");
+const NS = "http://www.w3.org/2000/svg";
+const $ = (id) => document.getElementById(id);
+const cssv = (n) => getComputedStyle(root).getPropertyValue(n).trim();
+const fmtInt = (v) => Math.round(v).toLocaleString("en-US");
+const fmtCompact = (v) => v >= 1e6 ? (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + "M" : v >= 1e4 ? (v / 1e3).toFixed(0) + "K" : fmtInt(v);
+const pct = (v, d = 1) => (100 * v).toFixed(d) + "%";
+const rowsOf = (t) => t ? t.rows.map((r) => Object.fromEntries(t.cols.map((c, i) => [c, r[i]]))) : [];
+
+function svgEl(tag, attrs = {}, parent = null) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "style") Object.assign(e.style, v); else e.setAttribute(k, v);
+  }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function htmlEl(tag, attrs = {}, parent = null, text = null) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "style") Object.assign(e.style, v); else if (k === "class") e.className = v; else e.setAttribute(k, v);
+  }
+  if (text !== null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgText(parent, x, y, text, attrs = {}) {
+  const t = svgEl("text", { x, y, ...attrs }, parent);
+  t.textContent = text;
+  return t;
+}
+
+// ---------------------------------------------------------------- color helpers
+function hexToRgb(h) { h = h.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16) / 255); }
+const toLin = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+const toSrgb = (c) => c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+function mix(a, b, t) {
+  const A = hexToRgb(a).map(toLin), B = hexToRgb(b).map(toLin);
+  const m = A.map((x, i) => toSrgb(x + (B[i] - x) * t));
+  return "#" + m.map((x) => Math.round(Math.max(0, Math.min(1, x)) * 255).toString(16).padStart(2, "0")).join("");
+}
+const SEQ_LIGHT = ["#cce3fd", "#9dc8f7", "#6aabf1", "#338ced", "#2370cd", "#1757ac", "#0e3d7e"];
+const SEQ_DARK = ["#0e3d7e", "#1757ac", "#2370cd", "#338ced", "#6aabf1", "#9dc8f7", "#cce3fd"];
+const isDark = () => cssv("color-scheme") === "dark";
+function seqColor(t) {  // t in [0,1]
+  const ramp = isDark() ? SEQ_DARK : SEQ_LIGHT;
+  t = Math.max(0, Math.min(1, t)) * (ramp.length - 1);
+  const i = Math.min(ramp.length - 2, Math.floor(t));
+  return mix(ramp[i], ramp[i + 1], t - i);
+}
+function divColor(t) {  // t in [-1,1]
+  t = Math.max(-1, Math.min(1, t));
+  return t < 0 ? mix(cssv("--div-mid"), cssv("--div-neg"), -t) : mix(cssv("--div-mid"), cssv("--div-pos"), t);
+}
+
+// ---------------------------------------------------------------- tooltip
+const tip = $("tooltip");
+function showTip(evt, rows, anchorEl = null) {
+  tip.replaceChildren();
+  for (const r of rows) {
+    const line = htmlEl("div", { class: "tr" }, tip);
+    if (r.key) htmlEl("span", { class: "key-line", style: { background: r.key } }, line);
+    if (r.value !== undefined) htmlEl("span", { class: "tv" }, line, r.value);
+    if (r.label) htmlEl("span", { class: "tl" }, line, r.label);
+  }
+  tip.style.display = "block";
+  let x, y;
+  if (evt && evt.clientX !== undefined && evt.type !== "focus") { x = evt.clientX; y = evt.clientY; }
+  else { const b = (anchorEl || evt.target).getBoundingClientRect(); x = b.left + b.width / 2; y = b.top; }
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, x + 14)) + "px";
+  tip.style.top = Math.max(8, y - h - 12) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+function bindTip(el, rowsFn) {
+  el.addEventListener("pointermove", (e) => showTip(e, rowsFn()));
+  el.addEventListener("pointerleave", hideTip);
+  el.addEventListener("focus", (e) => showTip(e, rowsFn(), el));
+  el.addEventListener("blur", hideTip);
+}
+
+// ---------------------------------------------------------------- table view
+function tableView(parent, cols, rows, summary = "Show data table") {
+  const d = htmlEl("details", { class: "tbl" }, parent);
+  htmlEl("summary", {}, d, summary);
+  const t = htmlEl("table", {}, d);
+  const tr = htmlEl("tr", {}, htmlEl("thead", {}, t));
+  cols.forEach((c) => htmlEl("th", { class: c.num ? "num" : "" }, tr, c.label));
+  const tb = htmlEl("tbody", {}, t);
+  for (const r of rows) {
+    const row = htmlEl("tr", {}, tb);
+    cols.forEach((c, i) => htmlEl("td", { class: c.num ? "num" : "" }, row, r[i]));
+  }
+  return d;
+}
+
+function legend(parent, items) {
+  const l = htmlEl("div", { class: "legend" }, parent);
+  for (const it of items) {
+    const s = htmlEl("span", {}, l);
+    htmlEl("span", { class: it.shape === "rect" ? "key-rect" : it.shape === "dot" ? "key-dot" : "key-line", style: { background: it.color } }, s);
+    s.appendChild(document.createTextNode(it.label));
+  }
+  return l;
+}
+
+// ---------------------------------------------------------------- line chart
+// opts: {series:[{name,color,points:[[x,y]],markersOnly}], x:{log2,ticks,fmt,label,domain}, y:{domain,ticks,fmt,label}, refs:[], height}
+function lineChart(parent, opts) {
+  const W = Math.max(320, parent.clientWidth || 600), H = opts.height || 260;
+  const m = { l: 48, r: opts.marginRight ?? 110, t: opts.y.label ? 26 : 12, b: 40 };
+  legend(parent, opts.series.map((s) => ({ label: s.name, color: s.color, shape: s.markersOnly ? "dot" : "line" })));
+  const svg = svgEl("svg", { width: W, height: H, role: "img", "aria-label": opts.aria || "" }, parent);
+  const xv = (v) => opts.x.log2 ? Math.log2(v) : v;
+  const [x0, x1] = opts.x.domain.map(xv), [y0, y1] = opts.y.domain;
+  const X = (v) => m.l + (xv(v) - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = (v) => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  for (const t of opts.y.ticks) {
+    svgEl("line", { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), style: { stroke: "var(--grid)", strokeWidth: 1 } }, svg);
+    svgText(svg, m.l - 8, Y(t) + 4, opts.y.fmt(t), { "text-anchor": "end" });
+  }
+  svgEl("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, style: { stroke: "var(--axis)", strokeWidth: 1 } }, svg);
+  for (const t of opts.x.ticks) svgText(svg, X(t), H - m.b + 16, opts.x.fmt(t), { "text-anchor": "middle" });
+  if (opts.x.label) svgText(svg, (m.l + W - m.r) / 2, H - 6, opts.x.label, { "text-anchor": "middle" });
+  if (opts.y.label) svgText(svg, 0, 12, opts.y.label, { "text-anchor": "start" });
+  for (const r of opts.refs || []) {
+    if (r.axis === "y") {
+      svgEl("line", { x1: m.l, x2: W - m.r, y1: Y(r.value), y2: Y(r.value), style: { stroke: "var(--text-secondary)", strokeWidth: 1 } }, svg);
+      svgText(svg, W - m.r + 6, Y(r.value) + 4, r.label);
+    } else {
+      svgEl("line", { x1: X(r.value), x2: X(r.value), y1: m.t, y2: H - m.b, style: { stroke: "var(--text-secondary)", strokeWidth: 1 } }, svg);
+      svgText(svg, X(r.value) + 4, m.t + 10, r.label, { class: "ink" });
+    }
+  }
+  const ends = [];
+  for (const s of opts.series) {
+    if (!s.markersOnly) {
+      const d = s.points.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join("");
+      svgEl("path", { d, style: { fill: "none", stroke: s.color, strokeWidth: 2, strokeLinejoin: "round", strokeLinecap: "round" } }, svg);
+    } else {
+      for (const p of s.points) {
+        svgEl("circle", { cx: X(p[0]), cy: Y(p[1]), r: 4.5, style: { fill: s.color, stroke: "var(--surface-1)", strokeWidth: 2 } }, svg);
+      }
+    }
+    const last = s.points[s.points.length - 1];
+    ends.push({ s, y: Y(last[1]), x: X(last[0]) });
+  }
+  // direct labels at line ends when they do not collide
+  ends.sort((a, b) => a.y - b.y);
+  const collide = ends.some((e, i) => i && e.y - ends[i - 1].y < 13);
+  if (!collide && opts.directLabels !== false) {
+    for (const e of ends) svgText(svg, e.x + 8, e.y + 4, e.s.label || e.s.name, { class: "ink" });
+  }
+  // crosshair + tooltip snapping to the nearest x
+  const xs = [...new Set(opts.series.flatMap((s) => s.points.map((p) => p[0])))].sort((a, b) => a - b);
+  const cross = svgEl("line", { y1: m.t, y2: H - m.b, style: { stroke: "var(--axis)", strokeWidth: 1, display: "none" } }, svg);
+  const hit = svgEl("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent", tabindex: 0, class: "focus-ring" }, svg);
+  let fi = 0;
+  const showAt = (xval, evt) => {
+    cross.setAttribute("x1", X(xval)); cross.setAttribute("x2", X(xval)); cross.style.display = "";
+    const rows = [{ value: opts.x.fmtLong ? opts.x.fmtLong(xval) : opts.x.fmt(xval) }];
+    for (const s of opts.series) {
+      const p = s.points.find((q) => q[0] === xval);
+      if (p) rows.push({ key: s.color, value: opts.y.fmtTip ? opts.y.fmtTip(p[1]) : opts.y.fmt(p[1]), label: s.name });
+    }
+    showTip(evt, rows, evt.type === "keydown" || evt.type === "focus" ? cross : null);
+  };
+  hit.addEventListener("pointermove", (e) => {
+    const r = svg.getBoundingClientRect(), px = e.clientX - r.left;
+    let best = xs[0];
+    for (const v of xs) if (Math.abs(X(v) - px) < Math.abs(X(best) - px)) best = v;
+    showAt(best, e);
+  });
+  hit.addEventListener("pointerleave", () => { cross.style.display = "none"; hideTip(); });
+  hit.addEventListener("focus", (e) => showAt(xs[fi], e));
+  hit.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") fi = Math.min(xs.length - 1, fi + 1); else if (e.key === "ArrowLeft") fi = Math.max(0, fi - 1); else return;
+    e.preventDefault(); showAt(xs[fi], e);
+  });
+  hit.addEventListener("blur", () => { cross.style.display = "none"; hideTip(); });
+  return svg;
+}
+
+// ---------------------------------------------------------------- horizontal bars (single series, ranked)
+function hbars(parent, items, opts = {}) {
+  const W = Math.max(320, parent.clientWidth || 600), rowH = 28, lw = opts.labelWidth || 120;
+  const H = items.length * rowH + 8;
+  const svg = svgEl("svg", { width: W, height: H, role: "img", "aria-label": opts.aria || "" }, parent);
+  const max = opts.max || Math.max(...items.map((i) => i.value), 1e-9);
+  const X = (v) => (v / max) * (W - lw - 80);
+  items.forEach((it, i) => {
+    const y = i * rowH + 4, bh = 16;
+    svgText(svg, lw - 8, y + 13, it.label, { "text-anchor": "end", class: "ink" });
+    const w = Math.max(it.value > 0 ? 2 : 0, X(it.value));
+    if (w > 0) {
+      const r = Math.min(4, w / 2);
+      svgEl("path", { d: `M${lw},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${bh - 2 * r}a${r},${r} 0 0 1 -${r},${r}h-${w - r}z`, style: { fill: it.color || "var(--series-1)" } }, svg);
+    }
+    svgText(svg, lw + w + 6, y + 13, it.text ?? String(it.value));
+    const hit = svgEl("rect", { x: 0, y: y - 4, width: W, height: rowH, fill: "transparent", tabindex: 0, class: "focus-ring" }, svg);
+    bindTip(hit, () => it.tip || [{ value: it.text ?? String(it.value), label: it.label }]);
+  });
+  return svg;
+}
+
+// diverging bars around lift = 1 on a log2 scale (|log2| capped at `cap`)
+function liftBars(parent, items, cap = 3) {
+  const W = Math.max(300, parent.clientWidth || 480), rowH = 24, lw = 150, rw = 64;
+  const H = items.length * rowH + 22;
+  const svg = svgEl("svg", { width: W, height: H, role: "img" }, parent);
+  const cx = lw + (W - lw - rw) / 2, half = (W - lw - rw) / 2 - 4;
+  const X = (l) => cx + Math.max(-cap, Math.min(cap, Math.log2(Math.max(l, 1e-6)))) / cap * half;
+  for (const t of [0.25, 0.5, 1, 2, 4, 8].filter((t) => Math.abs(Math.log2(t)) <= cap)) {
+    svgEl("line", { x1: X(t), x2: X(t), y1: 0, y2: H - 20, style: { stroke: t === 1 ? "var(--axis)" : "var(--grid)", strokeWidth: 1 } }, svg);
+    svgText(svg, X(t), H - 6, t >= 1 ? t + "×" : "1/" + (1 / t) + "×", { "text-anchor": "middle" });
+  }
+  items.forEach((it, i) => {
+    const y = i * rowH + 3, bh = 14;
+    svgText(svg, lw - 8, y + 11, it.label, { "text-anchor": "end", class: "ink" });
+    const x2 = X(it.value), x1 = cx, w = Math.abs(x2 - x1);
+    const color = it.muted ? "var(--deemph)" : it.value >= 1 ? "var(--div-pos)" : "var(--div-neg)";
+    if (w >= 1) {
+      const r = Math.min(4, w / 2);
+      const d = x2 >= x1
+        ? `M${x1},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${bh - 2 * r}a${r},${r} 0 0 1 -${r},${r}h-${w - r}z`
+        : `M${x1},${y}h-${w - r}a${r},${r} 0 0 0 -${r},${r}v${bh - 2 * r}a${r},${r} 0 0 0 ${r},${r}h${w - r}z`;
+      svgEl("path", { d, style: { fill: color } }, svg);
+    }
+    svgText(svg, W - rw + 6, y + 11, it.text, { class: it.sig ? "ink" : "" });
+    const hit = svgEl("rect", { x: 0, y: y - 4, width: W, height: rowH, fill: "transparent", tabindex: 0, class: "focus-ring" }, svg);
+    bindTip(hit, () => it.tip);
+  });
+  return svg;
+}
+
+// ---------------------------------------------------------------- heatmap
+function heatmap(parent, o) {
+  const lw = o.labelWidth || 70, cw = o.cellW, ch = o.cellH, top = o.top ?? 18;
+  const W = lw + o.nCols * cw + 8, H = top + o.nRows * ch + (o.bottom || 22);
+  const svg = svgEl("svg", { width: W, height: H, role: "img", "aria-label": o.aria || "" }, parent);
+  for (let r = 0; r < o.nRows; ++r) svgText(svg, lw - 6, top + r * ch + ch / 2 + 4, o.rowLabel(r), { "text-anchor": "end" });
+  for (let c = 0; c < o.nCols; ++c) {
+    const lab = o.colLabel ? o.colLabel(c) : null;
+    if (lab !== null) svgText(svg, lw + c * cw + cw / 2, top - 6, lab, { "text-anchor": "middle" });
+  }
+  const cells = svgEl("g", {}, svg);
+  for (let r = 0; r < o.nRows; ++r) for (let c = 0; c < o.nCols; ++c) {
+    const x = lw + c * cw, y = top + r * ch;
+    svgEl("rect", { x: x + 0.5, y: y + 0.5, width: cw - 1, height: ch - 1, rx: 1.5, style: { fill: o.color(r, c) } }, cells);
+    if (o.mark && o.mark(r, c)) svgEl("circle", { cx: x + cw / 2, cy: y + ch / 2, r: Math.min(2.2, cw / 3), style: { fill: "var(--text-primary)" } }, cells);
+  }
+  if (o.highlightCol !== undefined && o.highlightCol >= 0) {
+    svgEl("rect", { x: lw + o.highlightCol * cw - 0.5, y: top - 1, width: cw + 1, height: o.nRows * ch + 2, style: { fill: "none", stroke: "var(--text-primary)", strokeWidth: 1.5 } }, svg);
+  }
+  const hit = svgEl("rect", { x: lw, y: top, width: o.nCols * cw, height: o.nRows * ch, fill: "transparent" }, svg);
+  const cellAt = (e) => {
+    const b = svg.getBoundingClientRect();
+    const c = Math.floor((e.clientX - b.left - lw) / cw), r = Math.floor((e.clientY - b.top - top) / ch);
+    return r >= 0 && r < o.nRows && c >= 0 && c < o.nCols ? [r, c] : null;
+  };
+  hit.addEventListener("pointermove", (e) => { const rc = cellAt(e); if (rc) showTip(e, o.tip(rc[0], rc[1])); else hideTip(); });
+  hit.addEventListener("pointerleave", hideTip);
+  if (o.onClick) { hit.style.cursor = "pointer"; hit.addEventListener("click", (e) => { const rc = cellAt(e); if (rc) o.onClick(rc[0], rc[1]); }); }
+  if (o.scale) {
+    const sy = H - 10, sx = lw, sw = Math.min(240, o.nCols * cw);
+    for (let i = 0; i < 48; ++i) svgEl("rect", { x: sx + i * sw / 48, y: sy - 8, width: sw / 48 + 0.5, height: 8, style: { fill: o.scale.color(i / 47) } }, svg);
+    svgText(svg, sx, sy + 10 + 0, "", {});
+    svgText(svg, sx - 6, sy, o.scale.lo, { "text-anchor": "end" });
+    svgText(svg, sx + sw + 6, sy, o.scale.hi, { "text-anchor": "start" });
+  }
+  return svg;
+}
+
+// ---------------------------------------------------------------- derived data
+const meta = D.meta, cats = meta.categories.map((c) => c.name), classes = meta.classes;
+const NE = meta.n_expert, NP = meta.n_phys;
+const EX = D.experts;
+const ex = (l, e) => EX[l * NE + e];
+const isSig = (x, c) => x.cq[c] !== null && x.cq[c] < 0.05 && x.cl[c] >= 1.5;
+const S = D.summary || {};
+const decodeTokens = S.decode_tokens || 0;
+
+// ---------------------------------------------------------------- header + KPIs
+function renderHeader() {
+  $("subtitle").textContent =
+    `${meta.records.toLocaleString("en-US")} routing decisions from ${meta.prompts.length} prompts · ` +
+    `${NP} MoE layers × ${NE} experts, top-${meta.k}, blocks ${meta.core[0]}–${meta.core[1] - 1} looped ${meta.n_passes}× · generated ${meta.generated}`;
+  const k = $("kpis"); k.replaceChildren();
+  const lo = S.loop_overlap || {}, bpt = S.bytes_per_decode_token || {}, cache = (S.cache || {})["32MB"] || {};
+  const nSig = new Set(EX.filter((x) => x.cq.some((q, c) => isSig(x, c))).map((x) => x.l * NE + x.e)).size;
+  const tiles = [
+    ["Tokens traced", fmtInt(S.tokens || 0), `${fmtInt(decodeTokens)} generated`],
+    ["Bytes read per token", ((bpt.total || 0) / 1073741824).toFixed(1) + " GiB", `${((bpt.total || 0) / 1e9).toFixed(1)} GB · weights + KV, decode`],
+    ["Loop reuse, pass 0 → 1", (lo.decode_p0_p1 || 0).toFixed(1) + " of 8", "experts shared (random: 0.5)"],
+    ["Best 32 MB cache saving", pct(cache.belady_all || 0), "of all bytes, with an oracle"],
+    ["Layer-experts with a niche", `${fmtInt(nSig)} of ${fmtInt(NP * NE)}`, "significant category enrichment"],
+  ];
+  for (const [label, value, note] of tiles) {
+    const t = htmlEl("div", { class: "tile" }, k);
+    htmlEl("div", { class: "label" }, t, label);
+    htmlEl("div", { class: "value" }, t, value);
+    htmlEl("div", { class: "note" }, t, note);
+  }
+}
+
+// ---------------------------------------------------------------- answer
+function renderAnswer() {
+  const a = $("answer"); a.replaceChildren();
+  const tested = meta.categories.filter((c) => c.tested).map((c) => c.name);
+  const sigExperts = EX.filter((x) => x.cq.some((q, c) => isSig(x, c)));
+  const p = (txt) => htmlEl("p", {}, a, txt);
+  p(`Partly, yes. ${fmtInt(sigExperts.length)} of ${fmtInt(EX.length)} layer-experts are used significantly more for at least one prompt category ` +
+    `(lift ≥ 1.5×, false-discovery rate 5%, tested on the ${tested.length} categories with 3+ prompts). The strongest cases are easy to read: ` +
+    `code experts fire on C++ and JS syntax, math experts on LaTeX symbols and variables, structured-data experts on JSON/YAML keywords, ` +
+    `and CJK, Devanagari or digit experts on those characters.`);
+  p(`But the niches are soft. Every category still uses 117–127 of 128 experts per layer, and a category's whole routing distribution differs from ` +
+    `the average by only 0.08–0.16 bits. Experts behave like a large vocabulary of overlapping lexical and format features (syntax, script, ` +
+    `numbers, punctuation, list structure) rather than topic departments: a “code expert” is one that is 3–5× more likely on code tokens, ` +
+    `not one that handles code alone.`);
+  const c = htmlEl("p", { class: "callout" }, a);
+  c.textContent = "This is correlation from 38 prompts. To prove an expert is needed for a kind of work, ablate it: set its router bias to −∞ " +
+    "(a one-tensor GGUF edit with moe-permute's rewriter) and measure the perplexity change per category. That is the natural next step.";
+}
+
+// ---------------------------------------------------------------- bytes per token (tall segmented bar)
+function renderBytes() {
+  const host = $("bytes"); host.replaceChildren();
+  const b = S.bytes_per_decode_token || {};
+  const parts = [
+    { name: "Dense layer weights", v: b.dense, color: "var(--series-1)", ink: "#ffffff" },
+    { name: "Expert slabs", v: b.experts, color: "var(--series-2)", ink: "#ffffff" },
+    { name: "Output head", v: b.head, color: "var(--series-3)", ink: "#ffffff" },
+    { name: "KV cache", v: b.kv, color: "var(--series-4)", ink: "#0b0b0b" },
+  ];
+  const total = parts.reduce((s, p) => s + p.v, 0);
+  const W = Math.max(320, host.clientWidth || 700), H = 28;
+  const svg = svgEl("svg", { width: W, height: H + 4, role: "img", "aria-label": "Bytes per token split" }, host);
+  let x = 0;
+  for (const p of parts) {
+    const w = p.v / total * W;
+    const g = svgEl("g", { tabindex: 0, class: "focus-ring" }, svg);
+    svgEl("rect", { x: x + (x ? 1 : 0), y: 0, width: Math.max(0, w - (x ? 2 : 0) - 0), height: H, rx: 4, style: { fill: p.color } }, g);
+    const label = pct(p.v / total, 0);
+    if (w > 44) svgText(g, x + 8, 18, label, { style: { fill: p.ink, fontWeight: 600 } });
+    bindTip(g, () => [{ value: (p.v / 1048576).toFixed(0) + " MiB", label: `${p.name} · ${pct(p.v / total)}` }]);
+    x += w;
+  }
+  legend(host, parts.map((p) => ({ label: p.name + (p.v / total * W > 44 ? "" : ` (${pct(p.v / total)})`), color: p.color, shape: "rect" })));
+  htmlEl("p", { class: "sub" }, host, `${(total / 1073741824).toFixed(2)} GiB (${(total / 1e9).toFixed(2)} GB) per generated token. At 32.5 tok/s that is about ${(total * 32.5 / 1e9).toFixed(0)} GB/s of memory traffic.`);
+  tableView(host, [{ label: "Part" }, { label: "MiB per token", num: true }, { label: "Share", num: true }],
+    parts.map((p) => [p.name, (p.v / 1048576).toFixed(1), pct(p.v / total)]));
+}
+
+// ---------------------------------------------------------------- loop overlap
+function renderLoop() {
+  const host = $("loop"); host.replaceChildren();
+  const rows = rowsOf(D.loop_overlap).filter((r) => r.phase === "decode");
+  const pairs = [["0", "1", "Pass 0 → 1", "var(--series-1)"], ["1", "2", "Pass 1 → 2", "var(--series-2)"], ["0", "2", "Pass 0 → 2", "var(--series-3)"]];
+  const series = pairs.map(([a, b, name, color]) => ({
+    name, color, points: rows.filter((r) => String(r.pass_a) === a && String(r.pass_b) === b).map((r) => [r.phys, r.mean_overlap]),
+  }));
+  const blocks = series[0].points.map((p) => p[0]);
+  lineChart(host, {
+    series, height: 280, aria: "Loop overlap per block",
+    x: { domain: [blocks[0], blocks[blocks.length - 1]], ticks: blocks, fmt: (v) => String(v), fmtLong: (v) => "Block " + v, label: "physical block" },
+    y: { domain: [0, 8], ticks: [0, 2, 4, 6, 8], fmt: (v) => String(v), fmtTip: (v) => v.toFixed(2) + " of 8", label: "shared experts" },
+    refs: [{ axis: "y", value: 0.5, label: "random 0.5" }],
+  });
+  tableView(host, [{ label: "Block" }, ...pairs.map((p) => ({ label: p[2], num: true }))],
+    blocks.map((b, i) => [b, ...series.map((s) => s.points[i][1].toFixed(2))]));
+}
+
+// ---------------------------------------------------------------- lag + window
+function renderLag() {
+  const host = $("lag"); host.replaceChildren();
+  const rows = rowsOf(D.token_lag);
+  const by = new Map();
+  for (const r of rows) { const a = by.get(r.lag) || [0, 0]; a[0] += r.mean_overlap * r.pairs; a[1] += r.pairs; by.set(r.lag, a); }
+  const pts = [...by.entries()].sort((a, b) => a[0] - b[0]).map(([lag, [s, n]]) => [lag, s / n]);
+  lineChart(host, {
+    series: [{ name: "Shared experts", color: "var(--series-1)", points: pts }], height: 230, marginRight: 70, directLabels: false,
+    x: { domain: [1, 16], ticks: [1, 4, 8, 12, 16], fmt: (v) => String(v), fmtLong: (v) => "lag " + v, label: "lag (tokens)" },
+    y: { domain: [0, 8], ticks: [0, 2, 4, 6, 8], fmt: (v) => String(v), fmtTip: (v) => v.toFixed(2) + " of 8" },
+    refs: [{ axis: "y", value: 0.5, label: "random" }],
+  });
+  tableView(host, [{ label: "Lag" }, { label: "Shared experts", num: true }], pts.map((p) => [p[0], p[1].toFixed(2)]));
+}
+function renderWindow() {
+  const host = $("window"); host.replaceChildren();
+  const rows = rowsOf(D.window_union);
+  const by = new Map();
+  for (const r of rows) { const a = by.get(r.window) || [0, 0]; a[0] += r.mean_distinct_experts; a[1] += 1; by.set(r.window, a); }
+  const pts = [...by.entries()].sort((a, b) => a[0] - b[0]).map(([w, [s, n]]) => [w, s / n]);
+  const none = pts.map((p) => [p[0], Math.min(128, p[0] * 8)]);
+  lineChart(host, {
+    series: [{ name: "Measured", color: "var(--series-1)", points: pts }, { name: "No sharing", color: "var(--deemph)", points: none }],
+    height: 230, marginRight: 90,
+    x: { log2: true, domain: [1, 32], ticks: [1, 2, 4, 8, 16, 32], fmt: (v) => String(v), fmtLong: (v) => "W = " + v + " tokens", label: "tokens in the batch (W)" },
+    y: { domain: [0, 128], ticks: [0, 32, 64, 96, 128], fmt: (v) => String(v), fmtTip: (v) => v.toFixed(1) + " slabs" },
+  });
+  tableView(host, [{ label: "W" }, { label: "Distinct experts", num: true }, { label: "No sharing", num: true }],
+    pts.map((p, i) => [p[0], p[1].toFixed(1), none[i][1]]));
+}
+
+// ---------------------------------------------------------------- cache
+function renderCache() {
+  const host = $("cache"); host.replaceChildren();
+  const rows = rowsOf(D.cachesim);
+  const lru = rows.filter((r) => r.policy === "lru"), bel = rows.filter((r) => r.policy === "belady");
+  const series = [
+    { name: "LRU, all bytes", color: "var(--series-1)", points: lru.map((r) => [r.capacity_mb, 100 * r.hit_all]) },
+    { name: "LRU, dense weights", color: "var(--series-3)", points: lru.map((r) => [r.capacity_mb, 100 * r.hit_dense]) },
+    { name: "LRU, expert slabs", color: "var(--series-2)", points: lru.map((r) => [r.capacity_mb, 100 * r.hit_experts]) },
+    { name: "Oracle (Belady), all", color: "var(--series-4)", points: bel.map((r) => [r.capacity_mb, 100 * r.hit_all]), markersOnly: true },
+  ];
+  const fmtCap = (v) => v >= 1024 ? (v / 1024) + " GiB" : v + " MiB";
+  lineChart(host, {
+    series, height: 300, marginRight: 150, aria: "Cache hit rate by capacity",
+    x: { log2: true, domain: [2, 16384], ticks: [2, 8, 32, 128, 512, 2048, 8192], fmt: fmtCap, label: "cache capacity" },
+    y: { domain: [0, 100], ticks: [0, 25, 50, 75, 100], fmt: (v) => v + "%", fmtTip: (v) => v.toFixed(1) + "%", label: "byte hit rate" },
+    refs: [{ axis: "x", value: 32, label: "MALL 32 MiB" }],
+  });
+  htmlEl("p", { class: "sub" }, host, "Up to 512 MiB all three LRU lines sit at 0% (on top of each other). The oracle dots are the most any replacement policy could get.");
+  tableView(host, [{ label: "Policy" }, { label: "Capacity" }, { label: "All", num: true }, { label: "Dense", num: true }, { label: "Experts", num: true }, { label: "KV", num: true }],
+    rows.map((r) => [r.policy, fmtCap(r.capacity_mb), pct(r.hit_all), pct(r.hit_dense), pct(r.hit_experts), pct(r.hit_kv)]));
+}
+
+// ---------------------------------------------------------------- popularity heatmap
+function renderPop() {
+  const host = $("pop"); host.replaceChildren();
+  const byRank = $("pop-order").value === "rank";
+  const order = [];
+  for (let l = 0; l < NP; ++l) {
+    const ids = [...Array(NE).keys()];
+    if (byRank) ids.sort((a, b) => ex(l, b).share - ex(l, a).share);
+    order.push(ids);
+  }
+  const maxShare = 0.04;
+  heatmap(host, {
+    nRows: NP, nCols: NE, cellW: 7, cellH: 15, labelWidth: 70, aria: "Expert popularity heatmap",
+    rowLabel: (r) => "layer " + r + (r >= meta.core[0] && r < meta.core[1] ? " ↻" : ""),
+    colLabel: (c) => byRank ? (c % 32 === 0 ? "#" + (c + 1) : null) : (c % 16 === 0 ? String(c) : null),
+    color: (r, c) => seqColor(Math.sqrt(ex(r, order[r][c]).share / maxShare)),
+    tip: (r, c) => { const x = ex(r, order[r][c]); return [{ value: pct(x.share, 2) + " of decisions", label: `layer ${r} · expert ${x.e}` }]; },
+    onClick: (r, c) => openProfile(r, order[r][c], true),
+    bottom: 34, scale: { color: (t) => seqColor(t), lo: "0%", hi: "≥4% (sqrt scale)" },
+  });
+  htmlEl("p", { class: "sub" }, host, "↻ = looped block (runs 3× per token). Click a cell to open that expert in the explorer.");
+  const rows = rowsOf(D.layer_stats).filter((r) => r.phase === "all");
+  tableView(host, [{ label: "Layer" }, { label: "Effective experts", num: true }, { label: "Top-8 share", num: true }, { label: "Max share", num: true }, { label: "Gini", num: true }],
+    rows.map((r) => [r.phys, Number(r.effective_experts).toFixed(1), pct(r.top8_share), pct(r.max_share), Number(r.gini).toFixed(3)]), "Show per-layer summary table");
+}
+
+// ---------------------------------------------------------------- category specialists + JS heatmap
+function renderSpecCats() {
+  const host = $("spec-cats"); host.replaceChildren();
+  const items = meta.categories.map((c, ci) => {
+    const n = EX.filter((x) => isSig(x, ci)).length;
+    return { label: c.name, value: n, tested: c.tested, ci,
+      text: c.tested ? `${n}` : "not tested (< 3 prompts)",
+      tip: [{ value: c.tested ? `${n} layer-experts` : "not tested", label: `${c.name} · ${c.n_seqs} prompts, ${fmtInt(c.tokens)} tokens` }] };
+  }).sort((a, b) => (b.tested - a.tested) || (b.value - a.value));
+  hbars(host, items, { labelWidth: 110, max: Math.max(...items.map((i) => i.value)), aria: "Specialists per category" });
+  // strongest examples per category
+  const ex3 = [];
+  for (const it of items.filter((i) => i.tested)) {
+    const best = EX.filter((x) => isSig(x, it.ci)).sort((a, b) => b.cl[it.ci] - a.cl[it.ci]).slice(0, 3);
+    for (const x of best) ex3.push([it.label, `L${x.l} · E${x.e}`, x.cl[it.ci].toFixed(1) + "×", x.top.slice(0, 5).map((t) => t[0]).join("  "), x]);
+  }
+  const d = htmlEl("details", { class: "tbl", open: "" }, host);
+  htmlEl("summary", {}, d, "Strongest specialists per category (click a row to open it)");
+  const t = htmlEl("table", {}, d);
+  const hr = htmlEl("tr", {}, htmlEl("thead", {}, t));
+  ["Category", "Expert", "Lift", "Most enriched tokens"].forEach((h, i) => htmlEl("th", { class: i === 2 ? "num" : "" }, hr, h));
+  const tb = htmlEl("tbody", {}, t);
+  for (const r of ex3) {
+    const tr = htmlEl("tr", { class: "clickable", tabindex: 0 }, tb);
+    htmlEl("td", {}, tr, r[0]); htmlEl("td", {}, tr, r[1]); htmlEl("td", { class: "num" }, tr, r[2]);
+    const td = htmlEl("td", {}, tr);
+    r[4].top.slice(0, 5).forEach((tk) => { htmlEl("span", { class: "tok" }, td, tk[0]); td.appendChild(document.createTextNode(" ")); });
+    const go = () => openProfile(r[4].l, r[4].e, true);
+    tr.addEventListener("click", go);
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  }
+}
+function renderJS() {
+  const host = $("js"); host.replaceChildren();
+  const rows = rowsOf(D.category_js);
+  const val = new Map(rows.map((r) => [r.category + "|" + r.phys, r]));
+  const maxJ = Math.max(...rows.map((r) => r.js_divergence_bits));
+  heatmap(host, {
+    nRows: cats.length, nCols: NP, cellW: 30, cellH: 20, labelWidth: 100, aria: "JS divergence by category and layer",
+    rowLabel: (r) => cats[r], colLabel: (c) => (c % 2 === 0 ? String(c) : null),
+    color: (r, c) => seqColor((val.get(cats[r] + "|" + c)?.js_divergence_bits || 0) / maxJ),
+    tip: (r, c) => { const v = val.get(cats[r] + "|" + c); return [{ value: v.js_divergence_bits.toFixed(3) + " bits", label: `${cats[r]} · layer ${c} · ${v.experts_used} experts used` }]; },
+    bottom: 34, scale: { color: (t) => seqColor(t), lo: "0", hi: maxJ.toFixed(2) + " bits" },
+  });
+  tableView(host, [{ label: "Category" }, ...[...Array(NP).keys()].map((l) => ({ label: "L" + l, num: true }))],
+    cats.map((c) => [c, ...[...Array(NP).keys()].map((l) => (val.get(c + "|" + l)?.js_divergence_bits ?? 0).toFixed(2))]));
+}
+
+// ---------------------------------------------------------------- explorer + profile
+const state = { layer: 18, sort: "id", expert: -1 };
+function initExplorer() {
+  const ls = $("ex-layer");
+  for (let l = 0; l < NP; ++l) htmlEl("option", { value: l }, ls, "layer " + l + (l >= meta.core[0] && l < meta.core[1] ? " (looped)" : ""));
+  const ss = $("ex-sort");
+  htmlEl("option", { value: "id" }, ss, "expert id");
+  cats.forEach((c, i) => htmlEl("option", { value: String(i) }, ss, "lift in " + c));
+  // default layer: the one with most significant cells
+  let best = 0, bestN = -1;
+  for (let l = 0; l < NP; ++l) {
+    const n = EX.filter((x) => x.l === l && x.cq.some((q, c) => isSig(x, c))).length;
+    if (n > bestN) { bestN = n; best = l; }
+  }
+  state.layer = best;
+  ls.value = best;
+  ls.addEventListener("change", () => { state.layer = +ls.value; state.expert = -1; renderExplorer(); renderProfile(); });
+  ss.addEventListener("change", () => { state.sort = ss.value; renderExplorer(); });
+  $("ex-expert").addEventListener("change", (e) => { const v = +e.target.value; if (v >= 0 && v < NE) openProfile(state.layer, v, false); });
+}
+function explorerOrder() {
+  const ids = [...Array(NE).keys()];
+  if (state.sort !== "id") { const c = +state.sort; ids.sort((a, b) => ex(state.layer, b).cl[c] - ex(state.layer, a).cl[c]); }
+  return ids;
+}
+function renderExplorer() {
+  const host = $("explorer"); host.replaceChildren();
+  const order = explorerOrder(), L = state.layer;
+  heatmap(host, {
+    nRows: cats.length, nCols: NE, cellW: 8, cellH: 18, labelWidth: 100, aria: "Category lift per expert",
+    rowLabel: (r) => cats[r] + (meta.categories[r].tested ? "" : " *"),
+    colLabel: (c) => (state.sort === "id" ? (c % 16 === 0 ? String(c) : null) : null),
+    color: (r, c) => { const x = ex(L, order[c]); const k = 20 / Math.max(x.n, 1); return divColor(Math.log2((x.cl[r] + k) / (1 + k)) / 2.5); },
+    mark: (r, c) => isSig(ex(L, order[c]), r),
+    highlightCol: order.indexOf(state.expert),
+    tip: (r, c) => {
+      const x = ex(L, order[c]), q = x.cq[r];
+      return [{ value: x.cl[r].toFixed(2) + "×", label: `expert ${x.e} · ${cats[r]}` },
+        { label: q === null ? (meta.categories[r].tested ? "depleted (not tested)" : "category not tested") : `q = ${q.toFixed(3)}${isSig(x, r) ? " · significant" : ""}` }];
+    },
+    onClick: (r, c) => openProfile(L, order[c], false),
+    bottom: 36, scale: { color: (t) => divColor(t * 2 - 1), lo: "1/5.7×", hi: "5.7× lift" },
+  });
+  htmlEl("p", { class: "sub" }, host, "* fewer than 3 prompts: lift shown, not tested. Columns " + (state.sort === "id" ? "in expert id order." : "sorted by lift in " + cats[+state.sort] + "."));
+}
+function openProfile(l, e, scroll) {
+  state.layer = l; state.expert = e;
+  if (location.hash !== `#L${l}E${e}`) history.replaceState(null, "", `#L${l}E${e}`);
+  $("ex-layer").value = l; $("ex-expert").value = e;
+  renderExplorer(); renderProfile();
+  if (scroll) $("explorer-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderProfile() {
+  const host = $("profile"); host.replaceChildren();
+  if (state.expert < 0) { htmlEl("p", { class: "muted" }, host, "Select an expert to see its profile."); return; }
+  const x = ex(state.layer, state.expert);
+  htmlEl("h3", {}, host, `Layer ${x.l}, expert ${x.e}`);
+  // summary sentence
+  const sig = cats.map((c, i) => [c, x.cl[i], i]).filter((t) => isSig(x, t[2])).sort((a, b) => b[1] - a[1]);
+  const cls = classes.map((c, i) => [c, x.tl[i], x.te[i]]).filter((t) => t[2] >= 20 && t[1] >= 1.5).sort((a, b) => b[1] - a[1]).slice(0, 2);
+  const parts = [];
+  parts.push(`Picked for ${pct(x.share, 2)} of this layer's decisions (uniform: ${pct(1 / NE, 2)}).`);
+  parts.push(sig.length ? `Significantly enriched in ${sig.map((s) => `${s[0]} (${s[1].toFixed(1)}×)`).join(", ")}.` : "No significant category enrichment: a generalist at the category level.");
+  if (cls.length) parts.push(`Prefers ${cls.map((c) => `${c[0]} tokens (${c[1].toFixed(1)}×)`).join(" and ")}.`);
+  if (x.ps) parts.push(`Loop passes: ${x.ps.map((v, i) => `pass ${i} ${pct(v, 0)}`).join(", ")}.`);
+  parts.push(x.pre >= 1.3 ? `Leans to prompt processing (${x.pre.toFixed(1)}× prefill share).` : x.pre <= 0.77 ? `Leans to generation (prefill share ${x.pre.toFixed(2)}×).` : "");
+  htmlEl("p", { class: "lede" }, host, parts.filter(Boolean).join(" "));
+  const grid = htmlEl("div", { class: "profile" }, host);
+  const left = htmlEl("div", {}, grid), right = htmlEl("div", {}, grid);
+  htmlEl("h3", {}, left, "Prompt category lift");
+  liftBars(left, cats.map((c, i) => ({
+    label: c, value: x.cl[i], sig: isSig(x, i), muted: !meta.categories[i].tested,
+    text: x.cl[i].toFixed(2) + "×" + (isSig(x, i) ? " ●" : ""),
+    tip: [{ value: x.cl[i].toFixed(2) + "×", label: c }, { label: x.cq[i] === null ? "not tested" : `q = ${x.cq[i].toFixed(3)}` }],
+  })));
+  htmlEl("p", { class: "sub" }, left, "● significant (q < 0.05, lift ≥ 1.5). Gray: category with < 3 prompts.");
+  htmlEl("h3", {}, right, "Token-type lift");
+  const tItems = classes.map((c, i) => ({ c, i })).filter((t) => x.te[t.i] >= 20)
+    .map((t) => ({ label: t.c, value: x.tl[t.i], text: x.tl[t.i].toFixed(2) + "×", tip: [{ value: x.tl[t.i].toFixed(2) + "×", label: t.c }, { label: `${x.te[t.i]} selections expected at baseline` }] }));
+  if (tItems.length) liftBars(right, tItems);
+  htmlEl("p", { class: "sub" }, right, "Only token types with ≥ 20 expected selections are shown.");
+  htmlEl("h3", {}, host, "Most enriched tokens");
+  const t = htmlEl("table", {}, host);
+  const hr = htmlEl("tr", {}, htmlEl("thead", {}, t));
+  ["Token", "Type", "Lift", "Selected / seen"].forEach((h, i) => htmlEl("th", { class: i > 1 ? "num" : "" }, hr, h));
+  const tb = htmlEl("tbody", {}, t);
+  for (const tk of x.top.slice(0, 12)) {
+    const tr = htmlEl("tr", {}, tb);
+    htmlEl("span", { class: "tok" }, htmlEl("td", {}, tr), tk[0]);
+    htmlEl("td", { class: "muted" }, tr, classes[tk[4]]);
+    htmlEl("td", { class: "num" }, tr, tk[1].toFixed(1) + "×");
+    htmlEl("td", { class: "num" }, tr, `${tk[2]} / ${tk[3]}`);
+  }
+  htmlEl("p", { class: "sub" }, host, "Tokens seen in at least 12 routing decisions of this layer. · = space, ⏎ = newline, ⍽ = non-breaking space.");
+}
+
+// ---------------------------------------------------------------- token-type specialists
+function renderSpecTokens() {
+  const host = $("spec-tokens"); host.replaceChildren();
+  const t = htmlEl("table", {}, host);
+  const hr = htmlEl("tr", {}, htmlEl("thead", {}, t));
+  ["Token type", "Expert", "Lift", "Share of layer", "Most enriched tokens"].forEach((h, i) => htmlEl("th", { class: i === 2 || i === 3 ? "num" : "" }, hr, h));
+  const tb = htmlEl("tbody", {}, t);
+  classes.forEach((c, ci) => {
+    if (c === "mixed" || c === "byte fragment") return;
+    const best = EX.filter((x) => x.te[ci] >= 50).sort((a, b) => b.tl[ci] - a.tl[ci]).slice(0, 2);
+    for (const x of best) {
+      const tr = htmlEl("tr", { class: "clickable", tabindex: 0 }, tb);
+      htmlEl("td", {}, tr, c); htmlEl("td", {}, tr, `L${x.l} · E${x.e}`);
+      htmlEl("td", { class: "num" }, tr, x.tl[ci].toFixed(1) + "×");
+      htmlEl("td", { class: "num" }, tr, pct(x.share, 2));
+      const td = htmlEl("td", {}, tr);
+      const own = x.top.filter((tk) => tk[4] === ci), rest = x.top.filter((tk) => tk[4] !== ci);
+      [...own, ...rest].slice(0, 5).forEach((tk) => {
+        htmlEl("span", { class: "tok", style: tk[4] === ci ? {} : { opacity: 0.55 } }, td, tk[0]); td.appendChild(document.createTextNode(" "));
+      });
+      const go = () => openProfile(x.l, x.e, true);
+      tr.addEventListener("click", go);
+      tr.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    }
+  });
+}
+
+// ---------------------------------------------------------------- phase 3
+function renderPhase3() {
+  const host = $("phase3"); host.replaceChildren();
+  const P = D.phase3;
+  if (!P) { htmlEl("p", { class: "muted" }, host, "No Phase 3 data (bench/phase3.json) was supplied."); return; }
+  htmlEl("p", { class: "sub" }, host, "Storing co-selected experts next to each other cuts the number of separate memory ranges per top-8 selection, but not the bytes read. It did not change speed, and the reordered model is numerically equivalent.");
+  const g = htmlEl("div", { class: "grid2" }, host);
+  const a = htmlEl("div", {}, g), b = htmlEl("div", {}, g);
+  htmlEl("h3", {}, a, "Contiguous memory ranges per top-8 selection");
+  const runs = P.contiguity_runs;
+  hbars(a, [
+    { label: "Original order", value: runs.original, text: runs.original.toFixed(2) },
+    { label: "Random order", value: runs.random, text: runs.random.toFixed(2) },
+    { label: "Clustered order", value: runs.clustered_heldout, text: runs.clustered_heldout.toFixed(2) + " (held-out prompts)" },
+  ], { labelWidth: 120, max: 8, aria: "Contiguous runs per selection" });
+  htmlEl("p", { class: "sub" }, a, "8 = no two selected experts adjacent; 1 = all eight in one contiguous block.");
+  htmlEl("h3", {}, b, "Decode speed (llama-bench tg128, two rounds)");
+  const mean = (v) => v.reduce((s, x) => s + x, 0) / v.length;
+  hbars(b, P.bench.map((r) => ({ label: r.variant, value: mean(r.tg128), text: mean(r.tg128).toFixed(2) + " tok/s",
+    tip: [{ value: mean(r.tg128).toFixed(2) + " tok/s", label: `${r.variant} · rounds ${r.tg128.join(", ")} · pp512 ${mean(r.pp512).toFixed(1)}` }] })),
+    { labelWidth: 120, max: 36, aria: "Decode speed" });
+  htmlEl("p", { class: "sub" }, b, "Axis from 0; differences are under 1% and within round-to-round spread.");
+  htmlEl("h3", {}, host, "Numerical equivalence vs. the original model's output distributions");
+  const t = htmlEl("table", {}, host);
+  const hr = htmlEl("tr", {}, htmlEl("thead", {}, t));
+  ["Variant", "Mean KL divergence", "Same top token", "PPL ratio"].forEach((h, i) => htmlEl("th", { class: i ? "num" : "" }, hr, h));
+  const tb = htmlEl("tbody", {}, t);
+  for (const r of P.kld) {
+    const tr = htmlEl("tr", {}, tb);
+    htmlEl("td", {}, tr, r.variant);
+    htmlEl("td", { class: "num" }, tr, r.mean_kld.toFixed(5));
+    htmlEl("td", { class: "num" }, tr, r.same_top.toFixed(2) + "%");
+    htmlEl("td", { class: "num" }, tr, `${r.ppl_ratio.toFixed(4)} ± ${r.ppl_ratio_err.toFixed(4)}`);
+  }
+  htmlEl("p", { class: "sub" }, host, "The reordered models differ from the original exactly as much as the original does from itself with a different micro-batch size.");
+  tableView(host, [{ label: "Variant" }, { label: "tg128 rounds" }, { label: "pp512 rounds" }],
+    P.bench.map((r) => [r.variant, r.tg128.join(" / "), r.pp512.join(" / ")]), "Show benchmark table");
+}
+
+// ---------------------------------------------------------------- method
+function renderMethod() {
+  const host = $("method"); host.replaceChildren();
+  const items = [
+    `Trace: llama.cpp's eval callback captures the router's top-${meta.k} choice and probabilities for every token at all ${NP + (meta.n_passes - 1) * (meta.core[1] - meta.core[0])} graph slots; every choice was re-derived on the CPU from the captured probabilities and router bias (one disagreement in ${fmtInt(meta.records)}, an exact tie).`,
+    `Prompts: ${meta.prompts.length} prompts in ${cats.length} categories, chat prompts rendered with the model's own template, 384 generated tokens each at temperature 1.0. Category sizes: ${meta.categories.map((c) => `${c.name} ${c.n_seqs}`).join(", ")}.`,
+    `Lift = share of an expert's selections that come from a category (or token type) ÷ that category's share of all selections in the same layer. 1× = average.`,
+    `Significance: category labels were shuffled across whole prompts ${fmtInt(meta.perms)} times (keeping category sizes), so an effect has to be consistent across the prompts of a category; one unusual prompt cannot reach p below about n/38. q-values control the false-discovery rate over all tested cells. Categories with fewer than ${meta.min_seqs_for_test} prompts are shown but not tested.`,
+    `Token types are a heuristic classification of each token's decoded bytes. Token-type lifts are not significance-tested: tokens within a prompt are correlated, so only large lifts with good support should be read.`,
+    `Cache simulation: whole-object reads (expert slabs, a layer's dense weights, 256-position KV chunks) through a fully associative cache; LRU is exact for this access pattern, Belady is an offline upper bound. Real caches are set-associative and can only do worse than these numbers.`,
+  ];
+  const ul = htmlEl("ul", {}, host);
+  items.forEach((t) => htmlEl("li", {}, ul, t));
+}
+
+// ---------------------------------------------------------------- boot
+function renderAll() {
+  renderHeader(); renderAnswer(); renderBytes(); renderLoop(); renderLag(); renderWindow(); renderCache(); renderPop();
+  renderSpecCats(); renderJS(); renderExplorer(); renderProfile(); renderSpecTokens(); renderPhase3(); renderMethod();
+}
+$("pop-order").addEventListener("change", renderPop);
+$("theme-toggle").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  renderAll();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll);
+let resizeTimer = 0;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderAll, 150); });
+const qTheme = new URLSearchParams(location.search).get("theme");
+if (qTheme === "dark" || qTheme === "light") document.documentElement.setAttribute("data-theme", qTheme);
+if (!D) { document.querySelector("main").textContent = "No data embedded. Generate this page with moe-report."; return; }
+initExplorer();
+renderAll();
+const applyHash = () => {
+  const m = location.hash.match(/^#L(\d+)E(\d+)$/);
+  if (m && +m[1] < NP && +m[2] < NE) openProfile(+m[1], +m[2], true);
+};
+window.addEventListener("hashchange", applyHash);
+applyHash();
+})();
+</script>
+</body>
+</html>

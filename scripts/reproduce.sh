@@ -22,6 +22,7 @@ fi
 
 if [[ $step == all || $step == analyze ]]; then
     ./build/moe-analyze traces/suite.mtrace -o results/suite | tee results/suite-report.txt
+    ./build/moe-report traces/suite.mtrace --analysis results/suite --phase3 bench/phase3.json   # -> results/suite/report.html
 fi
 
 if [[ $step == all || $step == permute ]]; then

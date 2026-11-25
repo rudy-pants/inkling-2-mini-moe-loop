@@ -1,0 +1,21 @@
+{
+  "_source": "measured 2026-11-24 with scripts/reproduce.sh (qa, bench); llama.cpp 189f431bf, ROCm 7.2.3",
+  "contiguity_runs": {"original": 7.554, "random": 7.562, "clustered_heldout": 5.747},
+  "kld": [
+    {"variant": "original, -ub 128 (control)", "mean_kld": 0.002972, "same_top": 97.922, "ppl_ratio": 0.998114, "ppl_ratio_err": 0.001498},
+    {"variant": "clustered order", "mean_kld": 0.002930, "same_top": 97.824, "ppl_ratio": 1.000845, "ppl_ratio_err": 0.001573},
+    {"variant": "random order", "mean_kld": 0.002907, "same_top": 97.824, "ppl_ratio": 1.001319, "ppl_ratio_err": 0.001523}
+  ],
+  "ppl": [
+    {"variant": "original", "ppl": 4.1650, "err": 0.09149},
+    {"variant": "original, -ub 128", "ppl": 4.1643, "err": 0.09154},
+    {"variant": "clustered", "ppl": 4.1677, "err": 0.09159},
+    {"variant": "random", "ppl": 4.1678, "err": 0.09170}
+  ],
+  "bench": [
+    {"variant": "original", "tg128": [32.64, 32.39], "pp512": [566.07, 561.03]},
+    {"variant": "random", "tg128": [32.49, 32.48], "pp512": [559.84, 560.40]},
+    {"variant": "clustered", "tg128": [32.45, 32.37], "pp512": [560.51, 566.48]}
+  ],
+  "fetch_size": {"simulated_gib_per_token": 3.913, "measured_gib_per_step": 2.03, "head_measured_mb": 244.8, "head_actual_mb": 469.3}
+}

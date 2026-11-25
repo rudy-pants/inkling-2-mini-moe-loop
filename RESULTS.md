@@ -13,7 +13,7 @@ Full analyzer output: [docs/suite-report.txt](docs/suite-report.txt). Commands: 
 | Expert FFN | fused gate+up `[2304 → 2×1152]`, SiTU activation, down `[1152 → 2304]` |
 | Storage | blocks 0–19 NVFP4 with per-expert `.scale` (4.27 MB per expert), blocks 20–23 Q8_0 without `.scale` |
 | Loop | blocks 6–17 run 3×, the router of each looped block runs 3× per token with the same weights |
-| Reads per decode token | 4.0 GB: dense layer weights 1.70 GB, expert slabs 1.76 GB, output head 0.47 GB, KV 0.07 GB (short contexts) |
+| Reads per decode token | 3.9 GiB (4.2 GB): dense layer weights 1.66 GiB, expert slabs 1.72 GiB, output head 0.46 GiB, KV 0.07 GiB (short contexts) |
 
 ## Workload (Phase 1)
 
@@ -58,7 +58,7 @@ every category touches 117–127 experts per layer. Multilingual prompts are the
 which experts are slightly preferred, not which experts are needed.
 
 ### 5. The 32 MB Infinity Cache cannot capture weight reuse
-Fully associative cache over 14,213 decode tokens, whole-object reads (expert slabs, layer weights, 256-position KV
+Fully associative cache over 14,213 decode tokens (sizes in MiB/GiB), whole-object reads (expert slabs, layer weights, 256-position KV
 chunks):
 
 | capacity | LRU, all bytes | LRU, expert bytes | offline Belady, all | Belady, experts |
@@ -74,6 +74,24 @@ reuse of dense weights (53%) and experts (28%) appears. Even a clairvoyant polic
 32 MB. Hardware check: `rocprofv3 FETCH_SIZE` reports ~2.0 GB per decode step, but it also reports 245 MB for the
 469 MB output-head read, which no cache can hold; scaled by that factor the hardware traffic is ~3.9 GB per token,
 matching the simulator's 4.0 GB.
+
+## What each expert is used for
+
+`moe-report` profiles every (layer, expert) against its layer's baseline: lift per prompt category with a
+sequence-level permutation test (5,000 shuffles of category labels across whole prompts; Benjamini-Hochberg over
+all tested cells; categories with < 3 prompts not tested), lift per token type, and the most enriched tokens.
+Interactive version: `results/suite/report.html` (snapshot in [docs/report.html](docs/report.html)).
+
+- **1,522 of 3,072 layer-experts** have at least one significant category enrichment (lift ≥ 1.5×, q < 0.05):
+  code 471, factual 269, multilingual 227, math 188, odd inputs 174, structured 130, creative 97.
+- The strongest are readable: code experts fire on C++/JS syntax (`::`, `void`, `uint`, `include`), math experts on
+  LaTeX (`\`, `^`, `x`, `y`, `proof`), structured-data experts on `{`, `"`, `schema`, `YAML`; CJK experts reach
+  12.6× lift on CJK tokens (L23·E19: `是` `的` `，`), digit experts 13× on numbers (L16·E3), and L17·E25 is a
+  number-word expert (`ten`, `six`, `four` at 76×, mostly in loop pass 2).
+- The niches are soft: every category still touches 117–127 experts per layer, and whole-category routing differs
+  by only 0.08–0.16 bits. Experts act like overlapping lexical/format features, not topic departments.
+- This is correlational. Proof that an expert is *needed* for a kind of work requires ablation (router bias → −∞,
+  then per-category perplexity), which the GGUF rewriter can do with a one-tensor edit.
 
 ## Expert reordering (Phase 3)
 

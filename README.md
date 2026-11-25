@@ -1,4 +1,4 @@
-# moe-loop
+# inkling-2-mini-moe-loop
 
 Loop-aware MoE expert tracing for Inkling 2 Mini on Strix Halo. See [PLAN.md](PLAN.md) for the roadmap and QA plan.
 
@@ -24,6 +24,7 @@ ctest --test-dir build -L model         # model tests (needs -DMOE_MODEL_TESTS=O
 | `moe-dump` | print a trace as CSV (`--perm` maps a permuted model's ids back) |
 | `moe-analyze` | popularity, loop/token overlap, category specialization, cache simulation, contiguity |
 | `moe-permute` | `plan` expert orderings from traces, `apply` them to a GGUF, `verify` the result |
+| `moe-report` | per-expert profiles (category/token-type lift with permutation tests, top tokens) + self-contained HTML report |
 
 Results: [RESULTS.md](RESULTS.md). Reproduce: [scripts/reproduce.sh](scripts/reproduce.sh). Plan and QA: [PLAN.md](PLAN.md).
 
@@ -32,6 +33,7 @@ Results: [RESULTS.md](RESULTS.md). Reproduce: [scripts/reproduce.sh](scripts/rep
 ```sh
 ./build/moe-trace -o traces/t.mtrace --prompts-dir prompts/rendered -n 384     # ~10 min for the 38-prompt suite
 ./build/moe-analyze traces/t.mtrace -o results/t
+./build/moe-report traces/t.mtrace --analysis results/t --phase3 bench/phase3.json   # results/t/report.html
 ./build/moe-permute plan -t traces/t.mtrace --method clustered -o perms/clustered.txt
 ./build/moe-permute apply -i ../models/.../model.gguf -p perms/clustered.txt -o /path/new.gguf
 ```

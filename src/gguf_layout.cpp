@@ -114,6 +114,21 @@ GgufModel open_gguf(const std::string & path) {
     return m;
 }
 
+std::vector<std::string> read_string_array(const std::string & path, const std::string & key) {
+    gguf_init_params params{/*no_alloc =*/true, /*ctx =*/nullptr};
+    gguf_context * ctx = gguf_init_from_file(path.c_str(), params);
+    if (!ctx) throw std::runtime_error("not a readable GGUF file: " + path);
+    const int64_t id = gguf_find_key(ctx, key.c_str());
+    if (id < 0 || gguf_get_kv_type(ctx, id) != GGUF_TYPE_ARRAY || gguf_get_arr_type(ctx, id) != GGUF_TYPE_STRING) {
+        gguf_free(ctx);
+        throw std::runtime_error(path + ": no string array " + key);
+    }
+    std::vector<std::string> out(gguf_get_arr_n(ctx, id));
+    for (size_t i = 0; i < out.size(); ++i) out[i] = gguf_get_arr_str(ctx, id, i);
+    gguf_free(ctx);
+    return out;
+}
+
 ExpertTensorClass classify_tensor(const std::string & name) {
     static const std::regex re_router(R"(^blk\.(\d+)\.ffn_gate_inp\.weight$)");
     static const std::regex re_bias(R"(^blk\.(\d+)\.exp_probs_b\.bias$)");

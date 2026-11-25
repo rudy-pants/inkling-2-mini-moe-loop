@@ -6,3 +6,12 @@ results/
 compile_commands.json
 .cache/
 bench/ppl-corpus.txt
+
+# Local environments and credentials
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store

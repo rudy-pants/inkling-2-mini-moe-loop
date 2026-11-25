@@ -41,6 +41,9 @@ struct GgufModel {
 
 GgufModel open_gguf(const std::string & path);
 
+// Reads a string-array metadata value (e.g. tokenizer.ggml.tokens). Throws when missing or not a string array.
+std::vector<std::string> read_string_array(const std::string & path, const std::string & key);
+
 // How a tensor is indexed by expert. Classification is by name only: shape is never used to decide,
 // because unrelated tensors (e.g. attn_q_clip [128, 24], 128 = head dim) can share the expert count.
 enum class ExpertTensorKind {

@@ -52,7 +52,8 @@ target_compile_options(moe_llama PRIVATE ${MOE_WARNINGS})
 function(moe_tool name)
     add_executable(${name} tools/${name}.cpp)
     target_link_libraries(${name} PRIVATE ${ARGN})
-    target_compile_definitions(${name} PRIVATE MOE_DEFAULT_MODEL="${MOE_DEFAULT_MODEL}" MOE_BACKEND_DIR="${LLAMA_LIB_DIR}")
+    target_compile_definitions(${name} PRIVATE MOE_DEFAULT_MODEL="${MOE_DEFAULT_MODEL}" MOE_BACKEND_DIR="${LLAMA_LIB_DIR}"
+        MOE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     target_compile_options(${name} PRIVATE ${MOE_WARNINGS})
 endfunction()
 
@@ -61,13 +62,14 @@ moe_tool(moe-trace moe_llama)
 moe_tool(moe-dump  moe_core)
 moe_tool(moe-analyze moe_gguf)
 moe_tool(moe-permute moe_gguf)
+moe_tool(moe-report moe_gguf)
 
 # Tests
 enable_testing()
 add_library(doctest INTERFACE)
 target_include_directories(doctest SYSTEM INTERFACE third_party)
 
-add_executable(moe-tests tests/test_main.cpp tests/test_layout.cpp tests/test_trace.cpp tests/test_stats.cpp tests/test_permute.cpp)
+add_executable(moe-tests tests/test_main.cpp tests/test_layout.cpp tests/test_trace.cpp tests/test_stats.cpp tests/test_permute.cpp tests/test_tokens.cpp)
 target_link_libraries(moe-tests PRIVATE moe_core moe_gguf doctest)
 target_compile_options(moe-tests PRIVATE ${MOE_WARNINGS})
 add_test(NAME unit COMMAND moe-tests)
