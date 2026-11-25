@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Produce a JSON Schema (draft 2020-12) for a book catalog entry with title, authors, ISBN, publication year, genres and availability per branch. Output only JSON.<|end_message|>

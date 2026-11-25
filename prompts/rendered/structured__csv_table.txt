@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Generate a CSV with 15 rows of fictional weather station readings: station_id, timestamp (ISO 8601), temperature_c, humidity, wind_kph, pressure_hpa.<|end_message|>

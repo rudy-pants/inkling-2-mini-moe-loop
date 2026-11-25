@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Write the opening scene of a science fiction story set on a generation ship where the crew discovers the ship has stopped moving.<|end_message|>

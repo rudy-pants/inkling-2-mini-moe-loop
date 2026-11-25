@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Write a minimal C++20 thread pool with a submit() that returns std::future. Output only code.<|end_message|>

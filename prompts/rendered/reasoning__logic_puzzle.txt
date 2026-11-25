@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0.9<|end_message|><|message_user|><|content_text|>Five people sit in a row. Alice is not at either end. Bob sits immediately to the right of Carol. Dave is at an end. Eve is between Alice and Dave. Give all valid arrangements.<|end_message|>

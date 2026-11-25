@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>한국어로 오랜 친구에게 보내는 짧은 편지를 써 주세요. 최근 근황과 다음 달 만남 제안을 포함해 주세요.<|end_message|>

@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Explain the difference between an indemnification clause and a limitation of liability clause in a software licensing contract.<|end_message|>

@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Write a sonnet about a lighthouse keeper who has never seen the sea in daylight.<|end_message|>

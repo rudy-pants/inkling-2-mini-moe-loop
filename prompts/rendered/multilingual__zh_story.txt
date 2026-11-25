@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>请用中文写一个关于一只想学会飞翔的乌龟的短篇故事，大约三百字。<|end_message|>

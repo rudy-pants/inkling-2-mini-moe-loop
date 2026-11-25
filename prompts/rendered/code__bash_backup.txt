@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Write a bash script that backs up ~/projects to a dated tar.zst archive, keeps the last 7, and logs to syslog.<|end_message|>

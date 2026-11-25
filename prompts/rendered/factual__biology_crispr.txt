@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Explain how CRISPR-Cas9 gene editing works, including guide RNA, PAM sequences and DNA repair pathways.<|end_message|>

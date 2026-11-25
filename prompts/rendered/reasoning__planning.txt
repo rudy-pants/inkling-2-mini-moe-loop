@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0.7<|end_message|><|message_user|><|content_text|>I have 3 hours, a 20-minute commute each way, need to buy groceries (40 min), pick up a package that closes in 90 minutes, and cook dinner (50 min). Plan the order and justify it.<|end_message|>

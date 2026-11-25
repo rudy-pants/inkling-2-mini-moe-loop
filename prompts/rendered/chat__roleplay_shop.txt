@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>You're a grumpy medieval blacksmith. A traveler asks you to repair a dented helmet by tomorrow. Respond in character.<|end_message|>

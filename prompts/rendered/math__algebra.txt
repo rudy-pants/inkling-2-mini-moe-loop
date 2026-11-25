@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Solve for x and y: 3x + 2y = 16 and x - y = 2. Show the steps briefly.<|end_message|>

@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Write a Kubernetes Deployment and Service in YAML for a web app with 3 replicas, resource limits, a readiness probe and a ConfigMap-mounted config file.<|end_message|>

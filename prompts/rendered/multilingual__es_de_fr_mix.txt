@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Translate into Spanish, German and French: 'The train was late, so we walked along the river and found a small café that served the best soup we had ever tasted.'<|end_message|>

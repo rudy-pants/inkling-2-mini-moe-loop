@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>日本語で、光合成の仕組みを中学生にもわかるように説明してください。<|end_message|>

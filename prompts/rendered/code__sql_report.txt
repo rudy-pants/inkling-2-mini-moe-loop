@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Given tables orders(id, customer_id, total, created_at) and customers(id, name, country), write a SQL query for the top 5 countries by revenue in 2025, with month-over-month growth.<|end_message|>

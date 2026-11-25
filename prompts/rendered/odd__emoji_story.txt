@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Tell a short story using mostly emoji, then translate it into plain English.<|end_message|>

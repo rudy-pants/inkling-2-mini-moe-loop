@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>A tank fills at 12 liters per minute and drains at 5 liters per minute. It starts with 30 liters and holds 450. How long until it is full? Then: if the drain doubles after 20 minutes, how long?<|end_message|>

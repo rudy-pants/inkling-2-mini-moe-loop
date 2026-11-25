@@ -17,9 +17,21 @@ ctest --test-dir build -L model         # model tests (needs -DMOE_MODEL_TESTS=O
 
 ## Tools
 
-| Tool | Status | Purpose |
-|---|---|---|
-| `moe-smoke` | done | load model, check metadata + loop layout, greedy-generate (`--info-only` to skip generation) |
-| `moe-trace` | todo | record the router's expert choices per token and slot |
-| `moe-analyze` | todo | overlap statistics + cache simulator |
-| `moe-permute` | todo | GGUF rewriter that reorders experts |
+| Tool | Purpose |
+|---|---|
+| `moe-smoke` | load model, check metadata + loop layout, greedy-generate (`--info-only`, `--step-times`) |
+| `moe-trace` | record the router's expert choices for every token and graph slot ([format](docs/trace-format.md)) |
+| `moe-dump` | print a trace as CSV (`--perm` maps a permuted model's ids back) |
+| `moe-analyze` | popularity, loop/token overlap, category specialization, cache simulation, contiguity |
+| `moe-permute` | `plan` expert orderings from traces, `apply` them to a GGUF, `verify` the result |
+
+Results: [RESULTS.md](RESULTS.md). Reproduce: [scripts/reproduce.sh](scripts/reproduce.sh). Plan and QA: [PLAN.md](PLAN.md).
+
+## Quick start
+
+```sh
+./build/moe-trace -o traces/t.mtrace --prompts-dir prompts/rendered -n 384     # ~10 min for the 38-prompt suite
+./build/moe-analyze traces/t.mtrace -o results/t
+./build/moe-permute plan -t traces/t.mtrace --method clustered -o perms/clustered.txt
+./build/moe-permute apply -i ../models/.../model.gguf -p perms/clustered.txt -o /path/new.gguf
+```

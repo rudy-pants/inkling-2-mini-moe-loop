@@ -31,27 +31,44 @@ target_link_options(llama_prebuilt INTERFACE "LINKER:-rpath,${LLAMA_LIB_DIR}" "L
 set(MOE_WARNINGS -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wno-sign-conversion)
 
 # Code that needs no model or GPU: unit-testable on its own.
-add_library(moe_core INTERFACE)
-target_include_directories(moe_core INTERFACE include)
+add_library(moe_core STATIC src/trace.cpp src/permutation.cpp src/cachesim.cpp src/ordering.cpp)
+target_include_directories(moe_core PUBLIC include)
+target_compile_options(moe_core PRIVATE ${MOE_WARNINGS})
+
+# GGUF metadata access (libggml-base only, no GPU).
+add_library(moe_gguf STATIC src/gguf_layout.cpp src/gguf_permute.cpp)
+target_include_directories(moe_gguf PUBLIC include)
+target_include_directories(moe_gguf SYSTEM PUBLIC "${LLAMA_SRC_DIR}/ggml/include")
+target_link_libraries(moe_gguf PUBLIC moe_core "${LLAMA_LIB_DIR}/libggml-base.so")
+target_link_options(moe_gguf PUBLIC "LINKER:-rpath,${LLAMA_LIB_DIR}" "LINKER:--disable-new-dtags")
+target_compile_options(moe_gguf PRIVATE ${MOE_WARNINGS})
 
 # Code that talks to libllama.
 add_library(moe_llama STATIC src/model_info.cpp)
 target_include_directories(moe_llama PUBLIC include)
-target_link_libraries(moe_llama PUBLIC moe_core llama_prebuilt)
+target_link_libraries(moe_llama PUBLIC moe_core moe_gguf llama_prebuilt)
 target_compile_options(moe_llama PRIVATE ${MOE_WARNINGS})
 
-add_executable(moe-smoke tools/moe-smoke.cpp)
-target_link_libraries(moe-smoke PRIVATE moe_llama)
-target_compile_definitions(moe-smoke PRIVATE MOE_DEFAULT_MODEL="${MOE_DEFAULT_MODEL}" MOE_BACKEND_DIR="${LLAMA_LIB_DIR}")
-target_compile_options(moe-smoke PRIVATE ${MOE_WARNINGS})
+function(moe_tool name)
+    add_executable(${name} tools/${name}.cpp)
+    target_link_libraries(${name} PRIVATE ${ARGN})
+    target_compile_definitions(${name} PRIVATE MOE_DEFAULT_MODEL="${MOE_DEFAULT_MODEL}" MOE_BACKEND_DIR="${LLAMA_LIB_DIR}")
+    target_compile_options(${name} PRIVATE ${MOE_WARNINGS})
+endfunction()
+
+moe_tool(moe-smoke moe_llama)
+moe_tool(moe-trace moe_llama)
+moe_tool(moe-dump  moe_core)
+moe_tool(moe-analyze moe_gguf)
+moe_tool(moe-permute moe_gguf)
 
 # Tests
 enable_testing()
 add_library(doctest INTERFACE)
 target_include_directories(doctest SYSTEM INTERFACE third_party)
 
-add_executable(moe-tests tests/test_main.cpp tests/test_layout.cpp)
-target_link_libraries(moe-tests PRIVATE moe_core doctest)
+add_executable(moe-tests tests/test_main.cpp tests/test_layout.cpp tests/test_trace.cpp tests/test_stats.cpp tests/test_permute.cpp)
+target_link_libraries(moe-tests PRIVATE moe_core moe_gguf doctest)
 target_compile_options(moe-tests PRIVATE ${MOE_WARNINGS})
 add_test(NAME unit COMMAND moe-tests)
 

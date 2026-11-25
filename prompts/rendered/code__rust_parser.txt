@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Write a Rust function that parses a line like `key=value; key2=value2` into a HashMap<String, String>, returning a Result with a custom error type.<|end_message|>

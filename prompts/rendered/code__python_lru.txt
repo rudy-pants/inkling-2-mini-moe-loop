@@ -1,0 +1,1 @@
+<|message_system|><|content_text|>Thinking effort level: 0<|end_message|><|message_user|><|content_text|>Implement an LRU cache class in Python with get/put in O(1). Include type hints and a short docstring. Output only code.<|end_message|>
