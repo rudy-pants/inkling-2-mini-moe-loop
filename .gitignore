@@ -1,0 +1,7 @@
+build*/
+*.gguf
+*.mtrace
+traces/
+results/
+compile_commands.json
+.cache/
